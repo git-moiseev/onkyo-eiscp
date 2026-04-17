@@ -23,6 +23,35 @@ const maxVolume = Number(volumeRange?.max ?? 80);
 const STATUS_POLL_INTERVAL_MS = 3000;
 const USER_INTERACTION_GRACE_MS = 1200;
 
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        console.log('Tab hidden → stop polling');
+        clearInterval(statusPollTimer);
+    } else {
+        console.log('Tab visible → resume polling');
+        syncStatus();
+        startStatusPolling();
+    }
+});
+
+function updateInputUI(currentInput) {
+    document.querySelectorAll('.mini-input-btn').forEach(btn => {
+        const isActive = isPowerOn && btn.dataset.inputReceiver === String(currentInput);
+        btn.classList.toggle('active', isActive);
+
+        // Optional: disable buttons when power is off
+        btn.disabled = !isPowerOn;
+    });
+}
+
+function selectInput(receiverInput, userInputName) {
+    if (!isPowerOn) return;
+
+    updateInputUI(receiverInput);
+    sendCommand(`input-selector ${receiverInput}`, `Input: ${userInputName}`);
+    setTimeout(syncStatus, 400);
+}
+
 function showToast(message, type = 'info', duration = 2500) {
     const toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) return;
@@ -304,6 +333,7 @@ function applyStatusToUI(data) {
     updatePowerUI(powerOn);
     setVolumeControlEnabled(powerOn);
     updateMuteUI(muted);
+    updateInputUI(data['input-selector']);
 
     const recentlyChangedVolume =
         isDragging || (Date.now() - lastUserVolumeChangeAt < USER_INTERACTION_GRACE_MS);

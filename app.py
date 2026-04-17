@@ -14,7 +14,17 @@ STATUS_COMMANDS = [
     "system-power query",
     "master-volume query",
     "audio-muting query",
+    "input-selector query",
 ]
+
+input_map = {
+    "DVD": "dvd",
+    "VIDEO1": "video1",
+    "VIDEO2": "video2",
+    "PS3": "video3",
+    "TV": "tape-1",
+    "CD": "cd",
+}
 
 
 def normalize_response(response):
@@ -29,11 +39,10 @@ def normalize_response(response):
     return {"raw": response}
 
 
-def normalize_power_value(value):
+def normalize_value(value):
     """Normalize receiver power state for the frontend."""
     if isinstance(value, (tuple, list)):
-        lowered = {str(v).lower() for v in value}
-        return "on" if "on" in lowered else "off"
+        return value[0]
 
     return value
 
@@ -96,8 +105,9 @@ def get_receiver_status():
 
     return {
         "master-volume": data.get("master-volume", 0),
-        "system-power": normalize_power_value(data.get("system-power", "off")),
+        "system-power": normalize_value(data.get("system-power", "off")),
         "audio-muting": data.get("audio-muting", "off"),
+        "input-selector": normalize_value(data.get("input-selector", "none")),
     }
 
 
@@ -105,7 +115,7 @@ def get_receiver_status():
 def index():
     device_info = get_receiver_info()
     print(f"Device info: {device_info}")
-    return render_template("index.html", device_info=device_info)
+    return render_template("index.html", device_info=device_info, input_map=input_map)
 
 
 @app.route("/command", methods=["POST"])

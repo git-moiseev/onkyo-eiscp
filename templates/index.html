@@ -52,43 +52,70 @@
 
                     <div class="main-control-layout">
 
-                        <aside class="receiver-side">
-                            <div class="panel-card inner-panel-card">
-                                <div class="panel-body power-cluster">
-                                    <button
-                                        id="powerButton"
-                                        class="power-button"
-                                        type="button"
-                                        aria-label="Power toggle"
-                                        onclick="togglePower()"
-                                    >
-                                        <i class="bi bi-power"></i>
-                                    </button>
+<aside class="receiver-side">
+    <div class="panel-card inner-panel-card">
+        <div class="panel-body power-cluster">
 
-                                    <div class="power-led">
-                                        <span id="powerLed" class="power-led-dot"></span>
-                                        <span id="powerLedText">Standby</span>
-                                    </div>
-                                </div>
-                            </div>
+    <!-- Power button -->
+    <button
+        id="powerButton"
+        class="power-button power-button-sm"
+        type="button"
+        aria-label="Power toggle"
+        onclick="togglePower()"
+    >
+        <i class="bi bi-power"></i>
+    </button>
+
+    <div class="power-led">
+        <span id="powerLed" class="power-led-dot"></span>
+        <span id="powerLedText">Standby</span>
+    </div>
+
+<div class="mini-input-grid">
+    {% for user_input, receiver_input in input_map.items() %}
+    <button
+        type="button"
+        class="mini-input-btn"
+        data-input-receiver="{{ receiver_input }}"
+        onclick="selectInput('{{ receiver_input }}', '{{ user_input }}')"
+    >
+        <span class="mini-input-led"></span>
+        <span class="mini-input-label">{{ user_input }}</span>
+    </button>
+    {% endfor %}
+</div>
 <!--
-                            <div class="action-grid">
-                                <button class="btn btn-glass" onclick="sendCommand('master-volume level-up')">
-                                    <i class="bi bi-volume-up me-1"></i> Volume Up
-                                </button>
-                                <button class="btn btn-glass" onclick="sendCommand('master-volume level-down')">
-                                    <i class="bi bi-volume-down me-1"></i> Volume Down
-                                </button>
-                                <button class="btn btn-glass" onclick="sendCommand('audio-muting toggle')">
-                                    <i class="bi bi-volume-mute me-1"></i> Mute
-                                </button>
-                                <button class="btn btn-glass" onclick="refreshPage()">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                                </button>
-                            </div>
+            <div class="power-led">
+                <span id="powerLed" class="power-led-dot"></span>
+                <span id="powerLedText">Standby</span>
+            </div>
 -->
-                        </aside>
+        </div>
+    </div>
+<!--
+    <div class="panel-card inner-panel-card input-selector-panel">
+        <div class="panel-body py-3">
+            <div class="input-selector-title">Input Selector</div>
 
+            <div class="input-selector-list">
+                {% for user_input, receiver_input in input_map.items() %}
+                <button
+                    type="button"
+                    class="input-selector-btn"
+                    data-input-user="{{ user_input }}"
+                    data-input-receiver="{{ receiver_input }}"
+                    onclick="selectInput('{{ receiver_input }}', '{{ user_input }}')"
+                >
+                    <span class="input-selector-btn-name">{{ user_input }}</span>
+                    <span class="input-selector-btn-code">{{ receiver_input }}</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+-->
+</aside>
                         <div class="volume-section">
                             <div class="volume-label">Master Volume</div>
 
@@ -187,12 +214,13 @@
     <div class="toast-container"></div>
 
     <!-- Optional Flask-provided values -->
-    <script>
-    window.APP_CONFIG = {
-        initialVolume: {{ (device_info.get('master-volume', 20) if device_info else 20) | tojson }},
-        initialPower: {{ (device_info.get('system-power') == 'on' if device_info else false) | tojson }}
-    };
-   </script>
+<script>
+window.APP_CONFIG = {
+    initialVolume: {{ (device_info.get('master-volume', 20) if device_info else 20) | tojson }},
+    initialPower: {{ (device_info.get('system-power') == 'on' if device_info else false) | tojson }},
+    currentInput: {{ (device_info.get('input-selector', '') if device_info else '') | tojson }}
+};
+</script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
