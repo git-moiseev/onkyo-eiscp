@@ -131,8 +131,19 @@ function updateKnobUI(value) {
 
 function updateMuteUI(muted) {
     isMuted = muted;
+
+    const icon = document.getElementById('muteIcon');
+
     if (knobCenterButton) {
         knobCenterButton.classList.toggle('muted', muted);
+    }
+
+    if (!icon) return;
+
+    if (muted) {
+        icon.className = 'bi bi-volume-mute-fill muted';
+    } else {
+        icon.className = 'bi bi-volume-up-fill';
     }
 }
 
@@ -166,7 +177,19 @@ function sendVolume(value) {
 function setVolume(value, shouldSend = true) {
     if (!volumeRange) return;
 
-    const safeValue = Math.max(minVolume, Math.min(maxVolume, Math.round(value)));
+    const currentValue = Number(volumeRange.value);
+    const newValue = Math.round(value);
+
+    const delta = Math.abs(newValue - currentValue);
+
+    // Ignore large jumps (>5) during interaction
+    if (shouldSend && delta > 5) {
+        console.warn('Ignored large volume jump:', currentValue, '→', newValue);
+        return;
+    }
+
+    const safeValue = Math.max(minVolume, Math.min(maxVolume, newValue));
+
     volumeRange.value = safeValue;
     updateKnobUI(safeValue);
 
@@ -214,10 +237,21 @@ function togglePower() {
     setTimeout(syncStatus, 500);
 }
 
+//function toggleMute() {
+//    if (!isPowerOn || !knobCenterButton) return;
+//
+//    const nextMuted = !isMuted;
+//    updateMuteUI(nextMuted);
+//    sendCommand('audio-muting toggle', nextMuted ? 'Muted' : 'Unmuted');
+//
+//    setTimeout(syncStatus, 400);
+//}
+
 function toggleMute() {
-    if (!isPowerOn || !knobCenterButton) return;
+    if (!isPowerOn) return;
 
     const nextMuted = !isMuted;
+
     updateMuteUI(nextMuted);
     sendCommand('audio-muting toggle', nextMuted ? 'Muted' : 'Unmuted');
 
