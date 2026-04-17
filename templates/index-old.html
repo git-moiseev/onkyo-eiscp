@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onkyo Receiver Control</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 20px;
+        }
+        .device-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: none;
+        }
+        .device-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .btn-power {
+            font-weight: 600;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .btn-power:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            z-index: 1055;
+        }
+        .toast-top-right {
+            top: 20px;
+            right: 20px;
+        }
+        .toast {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: none;
+        }
+        .toast-success {
+            background-color: #d1e7dd;
+            border-left: 4px solid #198754;
+        }
+        .toast-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .toast-info {
+            background-color: #cff4fc;
+            border-left: 4px solid #0dcaf0;
+        }
+        .toast-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        @media (max-width: 768px) {
+            .btn-power {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .button-group {
+                gap: 10px;
+            }
+            .device-image {
+                margin-top: 15px;
+            }
+            .toast-top-right {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+            }
+            .toast {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1 class="display-6 fw-bold text-primary">Onkyo Receiver Control</h1>
+                <p class="lead text-muted">Remote control for your audio receiver</p>
+            </div>
+        </div>
+
+        <!-- Device Information Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card device-card">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0 text-center">
+                            <i class="bi bi-info-circle"></i> Device Information
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        {% if device_info %}
+                            <div class="row align-items-center">
+                                <div class="col-md-8 col-12">
+                                    <div class="table-responsive">
+                                        <table class="table table-borderless mb-0">
+                                            <tbody>
+                                                {% for key, value in device_info.items() %}
+                                                <tr>
+                                                    <td class="info-label ps-0">{{ key|replace('_', ' ')|title }}:</td>
+                                                    <td class="text-muted">{{ value }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-12 text-center">
+                                    <img src="{{ url_for('static', filename='img/integra-dtm-40-4-stereo-receiver.jpg') }}" 
+                                         alt="Onkyo Receiver" 
+                                         class="device-image img-fluid">
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning text-center mb-0" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Unable to retrieve device information. Please check the connection.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card device-card">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0 text-center">
+                            <i class="bi bi-power"></i> Power Control
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <div class="d-flex flex-column flex-md-row button-group">
+                                    <button class="btn btn-success btn-power me-md-2 mb-2 mb-md-0" 
+                                            onclick="sendCommand('system-power on')">
+                                        <i class="bi bi-power"></i> Power On
+                                    </button>
+                                    <button class="btn btn-danger btn-power" 
+                                            onclick="sendCommand('system-power off')">
+                                        <i class="bi bi-power"></i> Power Off
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Controls (Optional) -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card device-card">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0 text-center">
+                            <i class="bi bi-gear"></i> Quick Actions
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-sm-6 col-12">
+                                <button class="btn btn-outline-primary w-100" onclick="sendCommand('master-volume level-up')">
+                                    <i class="bi bi-volume-up"></i> Volume Up
+                                </button>
+                            </div>
+                            <div class="col-sm-6 col-12">
+                                <button class="btn btn-outline-primary w-100" onclick="sendCommand('master-volume level-down')">
+                                    <i class="bi bi-volume-down"></i> Volume Down
+                                </button>
+                            </div>
+                            <div class="col-sm-6 col-12">
+                                <button class="btn btn-outline-secondary w-100" onclick="sendCommand('audio-muting toggle')">
+                                    <i class="bi bi-volume-mute"></i> Mute
+                                </button>
+                            </div>
+                            <div class="col-sm-6 col-12">
+                                <button class="btn btn-outline-info w-100" onclick="refreshPage()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container toast-top-right"></div>
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function showToast(message, type = 'info', duration = 5000) {
+            const toastContainer = document.querySelector('.toast-container');
+            
+            // Create unique ID for toast
+            const toastId = 'toast-' + Date.now();
+            
+            // Define icons for different toast types
+            const icons = {
+                success: 'bi-check-circle-fill',
+                error: 'bi-exclamation-triangle-fill',
+                info: 'bi-info-circle-fill',
+                warning: 'bi-exclamation-circle-fill'
+            };
+            
+            const colors = {
+                success: 'toast-success',
+                error: 'toast-error',
+                info: 'toast-info',
+                warning: 'toast-warning'
+            };
+
+            const toastHTML = `
+                <div id="${toastId}" class="toast ${colors[type]}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="bi ${icons[type]} text-${type} me-2"></i>
+                        <strong class="me-auto">${type.charAt(0).toUpperCase() + type.slice(1)}</strong>
+                        <small>just now</small>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+            
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: duration
+            });
+            
+            toast.show();
+            
+            // Remove toast from DOM after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
+        function sendCommand(command) {
+            // Show loading toast
+            //showToast('Sending command...', 'info', 3000);
+
+            fetch('/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({command: command})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(`Command "${command}" executed successfully`, 'success', 2000);
+                } else {
+                    showToast(`Error: ${data.message}`, 'error', 5000);
+                }
+            })
+            .catch(error => {
+                showToast(`Network error: ${error}`, 'error', 5000);
+            });
+        }
+
+        function refreshPage() {
+            //showToast('Refreshing page...', 'info', 2000);
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+
+        // Add touch feedback for mobile
+        document.addEventListener('touchstart', function() {}, true);
+
+        // Show connection status on page load
+        window.addEventListener('load', function() {
+            {% if device_info %}
+                showToast('Device connected successfully', 'success', 3000);
+            {% else %}
+                showToast('Unable to connect to device', 'warning', 5000);
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
