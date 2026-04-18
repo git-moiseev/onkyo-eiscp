@@ -52,11 +52,55 @@ function selectInput(receiverInput, userInputName) {
     setTimeout(syncStatus, 400);
 }
 
-function showToast(message, type = 'info', duration = 2500) {
-    const toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) return;
+//function showToast(message, type = 'info', duration = 2500) {
+//    const toastContainer = document.querySelector('.toast-container');
+//    if (!toastContainer) return;
+//
+//    const toastId = 'toast-' + Date.now();
+//
+//    const icons = {
+//        success: 'bi-check-circle-fill',
+//        error: 'bi-exclamation-octagon-fill',
+//        info: 'bi-info-circle-fill',
+//        warning: 'bi-exclamation-triangle-fill'
+//    };
+//
+//    const toastHTML = `
+//        <div id="${toastId}" class="toast toast-${type}" role="alert" aria-live="assertive" aria-atomic="true">
+//            <div class="toast-header bg-transparent border-0 text-white">
+//                <i class="bi ${icons[type]} me-2"></i>
+//                <strong class="me-auto text-capitalize">${type}</strong>
+//                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+//            </div>
+//            <div class="toast-body pt-0">${message}</div>
+//        </div>
+//    `;
+//
+//    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+//
+//    const toastElement = document.getElementById(toastId);
+//    const toast = new bootstrap.Toast(toastElement, {
+//        autohide: true,
+//        delay: duration
+//    });
+//
+//    toast.show();
+//
+//    toastElement.addEventListener('hidden.bs.toast', () => {
+//        toastElement.remove();
+//    });
+//}
 
-    const toastId = 'toast-' + Date.now();
+
+function showToast(message, type = 'info', duration = 2500) {
+    if (window.matchMedia('(max-width: 576px)').matches) {
+        return;
+    }
+
+    const container = document.querySelector('.toast-container');
+    if (!container) return;
+
+    const id = 'toast-' + Date.now();
 
     const icons = {
         success: 'bi-check-circle-fill',
@@ -66,7 +110,7 @@ function showToast(message, type = 'info', duration = 2500) {
     };
 
     const toastHTML = `
-        <div id="${toastId}" class="toast toast-${type}" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="${id}" class="toast toast-${type}" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header bg-transparent border-0 text-white">
                 <i class="bi ${icons[type]} me-2"></i>
                 <strong class="me-auto text-capitalize">${type}</strong>
@@ -76,9 +120,9 @@ function showToast(message, type = 'info', duration = 2500) {
         </div>
     `;
 
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    container.insertAdjacentHTML('beforeend', toastHTML);
 
-    const toastElement = document.getElementById(toastId);
+    const toastElement = document.getElementById(id);
     const toast = new bootstrap.Toast(toastElement, {
         autohide: true,
         delay: duration

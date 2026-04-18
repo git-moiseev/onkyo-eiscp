@@ -13,7 +13,7 @@
     --shadow: 0 20px 50px rgba(0,0,0,0.35);
 
     --knob-size: 252px;
-    --knob-face-inset: 28px;
+    --knob-face-inset: 24px;
     --knob-center-inset: 82px;
     --tick-origin: 116px;
 }
