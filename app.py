@@ -1,14 +1,19 @@
 from flask import Flask, render_template, request, jsonify
 import eiscp
+import json
+import os
 import threading
 from contextlib import closing
 from collections.abc import Iterable
+from dotenv import load_dotenv
 
 #  https://github.com/miracle2k/onkyo-eiscp
 
+load_dotenv()
 app = Flask(__name__)
 
-DEVICE_IP = "192.168.1.40"
+DEVICE_IP = os.getenv("DEVICE_IP", "127.0.0.1")
+input_map = json.loads(os.getenv("INPUT_MAP", {"DVD": "dvd", "VIDEO1": "video1", "VIDEO2": "video2", "PS3": "video3", "TV": "tape-1", "CD": "cd" }))
 
 STATUS_COMMANDS = [
     "system-power query",
@@ -16,16 +21,6 @@ STATUS_COMMANDS = [
     "audio-muting query",
     "input-selector query",
 ]
-
-input_map = {
-    "DVD": "dvd",
-    "VIDEO1": "video1",
-    "VIDEO2": "video2",
-    "PS3": "video3",
-    "TV": "tape-1",
-    "CD": "cd",
-}
-
 
 def normalize_response(response):
     """Convert an eISCP response into a dictionary."""
