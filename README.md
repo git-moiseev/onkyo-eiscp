@@ -106,4 +106,12 @@ sudo systemctl enable onkyo-web.service
 sudo systemctl start onkyo-web.service
 ```
 
+# Notes
+
+- Receiver and Flask app must be on the same local network.
+- UI automatically detects connection status.
+- Input LEDs turn off when receiver enters standby.
+- Mobile devices do not display toast notifications.
+- Volume jumps larger than 5 points are ignored to prevent accidental jumps.
+
 
