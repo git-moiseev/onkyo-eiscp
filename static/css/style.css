@@ -214,6 +214,21 @@ body {
     color: var(--danger);
 }
 
+/* Receiver unreachable */
+.power-button.disconnected {
+    color: #69707a !important;
+
+    border-color: rgba(255,255,255,0.08) !important;
+
+    box-shadow:
+        inset 0 3px 10px rgba(255,255,255,0.04),
+        inset 0 -14px 18px rgba(0,0,0,0.28),
+        0 10px 24px rgba(0,0,0,0.28) !important;
+
+    opacity: 0.55;
+    filter: grayscale(0.45);
+}
+
 .power-button.power-button-sm {
     width: 82px;
     height: 82px;

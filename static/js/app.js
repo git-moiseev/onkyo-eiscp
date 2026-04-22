@@ -164,9 +164,15 @@ function updateKnobUI(value) {
 }
 
 function updatePowerUI(powerOn) {
-    if (powerButton) {
-        powerButton.classList.toggle('is-on', powerOn);
+    if (!powerButton) return;
+
+    // Don't show ON state if receiver disconnected
+    if (!isConnected) {
+        powerButton.classList.remove('is-on');
+        return;
     }
+
+    powerButton.classList.toggle('is-on', powerOn);
 
     if (powerStatusText) {
         powerStatusText.textContent = powerOn ? 'On' : 'Off';
@@ -185,6 +191,19 @@ function updateConnectionUI(connected, modelName = '') {
             ? `${modelName ? `${modelName} • ` : ''}Connected`
             : 'Disconnected';
     }
+
+    // Disable power button visually when receiver unreachable
+    if (powerButton) {
+        powerButton.classList.toggle('disconnected', !connected);
+
+        if (!connected) {
+            powerButton.classList.remove('is-on');
+        } else {
+            powerButton.classList.toggle('is-on', isPowerOn);
+        }
+    }
+
+    setVolumeControlEnabled(connected && isPowerOn);
 }
 
 function updateMuteUI(muted) {
@@ -399,10 +418,17 @@ function stopStatusPolling() {
 }
 
 function togglePower() {
+    if (!isConnected) return;
+
     isPowerOn = !isPowerOn;
 
-    const command = isPowerOn ? 'system-power on' : 'system-power off';
-    const message = isPowerOn ? 'Receiver powered on' : 'Receiver powered off';
+    const command = isPowerOn
+        ? 'system-power on'
+        : 'system-power off';
+
+    const message = isPowerOn
+        ? 'Receiver powered on'
+        : 'Receiver powered off';
 
     updatePowerUI(isPowerOn);
     setVolumeControlEnabled(isPowerOn);
