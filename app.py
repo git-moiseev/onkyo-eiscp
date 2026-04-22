@@ -127,7 +127,7 @@ def handle_command():
 
 @app.route("/status")
 def status():
-    data = run_receiver_command(STATUS_COMMANDS)
+    data = run_receiver_command(STATUS_COMMANDS, include_info=True)
 
     if not data:
         return jsonify({
@@ -141,7 +141,8 @@ def status():
             "master-volume": normalize_value(data.get("master-volume", 0)),
             "system-power": normalize_value(data.get("system-power", "off")),
             "audio-muting": normalize_value(data.get("audio-muting", "off")),
-            "input-selector": normalize_value(data.get("input-selector", ""))
+            "input-selector": normalize_value(data.get("input-selector", "")),
+            "model_name": data.get('model_name', 'Unknown')
         }
     })
 

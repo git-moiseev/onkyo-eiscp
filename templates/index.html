@@ -138,7 +138,7 @@
                         </div>
 
                         <table class="info-table">
-                            <tbody>
+<!--                            <tbody>
                                 {% for key, value in device_info.items() %}
                                 <tr>
                                     <td class="info-key">{{ key|replace('_', ' ')|title }}</td>
@@ -146,6 +146,50 @@
                                 </tr>
                                 {% endfor %}
                             </tbody>
+-->
+                           <tbody>
+                               <tr>
+                                   <td class="info-key">Model</td>
+                                   <td class="info-value" id="infoModel">
+                                       {{ device_info.get('model_name', '-') if device_info else '-' }}
+                                   </td>
+                               </tr>
+                           
+                               <tr>
+                                   <td class="info-key">Power</td>
+                                   <td class="info-value" id="infoPower">
+                                       {{ device_info.get('system-power', '-') if device_info else '-' }}
+                                   </td>
+                               </tr>
+                           
+                               <tr>
+                                   <td class="info-key">Volume</td>
+                                   <td class="info-value" id="infoVolume">
+                                       {{ device_info.get('master-volume', '-') if device_info else '-' }}
+                                   </td>
+                               </tr>
+                           
+                               <tr>
+                                   <td class="info-key">Mute</td>
+                                   <td class="info-value" id="infoMute">
+                                       {{ device_info.get('audio-muting', '-') if device_info else '-' }}
+                                   </td>
+                               </tr>
+                           
+                               <tr>
+                                   <td class="info-key">Input</td>
+                                   <td class="info-value" id="infoInput">
+                                       {{ device_info.get('input-selector', '-') if device_info else '-' }}
+                                   </td>
+                               </tr>
+                           
+                               <tr>
+                                   <td class="info-key">IP Address</td>
+                                   <td class="info-value">
+                                       {{ device_info.get('IP Address', '-') if device_info else '-' }}
+                                   </td>
+                               </tr>
+                           </tbody>
                         </table>
                     {% else %}
                         <div class="alert alert-warning mb-0">

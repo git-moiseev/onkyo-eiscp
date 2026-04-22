@@ -7,113 +7,53 @@ const knobScale = document.getElementById('knobScale');
 const powerButton = document.getElementById('powerButton');
 const powerStatusText = document.getElementById('powerStatusText');
 const knobCenterButton = document.getElementById('knobCenterButton');
-
+const muteIcon = document.getElementById('muteIcon');
 const connectionLed = document.getElementById('connectionLed');
 const connectionLedText = document.getElementById('connectionLedText');
 
 let isPowerOn = false;
 let isMuted = false;
+let isConnected = false;
 let isDragging = false;
+let isSyncingStatus = false;
 let volumeSendTimer = null;
 let statusPollTimer = null;
-let isSyncingStatus = false;
 let lastUserVolumeChangeAt = 0;
 
 const minVolume = Number(volumeRange?.min ?? 0);
 const maxVolume = Number(volumeRange?.max ?? 80);
+
 const STATUS_POLL_INTERVAL_MS = 3000;
 const USER_INTERACTION_GRACE_MS = 1200;
+const MAX_VOLUME_STEP_PER_TOUCH = 5;
 
-function updateConnectionUI(connected, modelName = '') {
-    if (connectionLed) {
-        connectionLed.classList.toggle('on', connected);
-    }
+function updateDeviceInfoUI(data) {
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value ?? '-';
+        }
+    };
 
-    if (connectionLedText) {
-        connectionLedText.textContent = connected
-            ? `${modelName ? modelName + ' • ' : ''}Connected`
-            : 'Disconnected';
-    }
+    setText('infoModel', data['model_name']);
+    setText('infoPower', data['system-power']);
+    setText('infoVolume', data['master-volume']);
+    setText('infoMute', data['audio-muting']);
+    setText('infoInput', data['input-selector']);
 }
-
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        console.log('Tab hidden → stop polling');
-        clearInterval(statusPollTimer);
-    } else {
-        console.log('Tab visible → resume polling');
-        syncStatus();
-        startStatusPolling();
-    }
-});
-
-function updateInputUI(currentInput) {
-    document.querySelectorAll('.mini-input-btn').forEach(btn => {
-        const isActive = isPowerOn && btn.dataset.inputReceiver === String(currentInput);
-        btn.classList.toggle('active', isActive);
-
-        // Optional: disable buttons when power is off
-        btn.disabled = !isPowerOn;
-    });
-}
-
-function selectInput(receiverInput, userInputName) {
-    if (!isPowerOn) return;
-
-    updateInputUI(receiverInput);
-    sendCommand(`input-selector ${receiverInput}`, `Input: ${userInputName}`);
-    setTimeout(syncStatus, 400);
-}
-
-//function showToast(message, type = 'info', duration = 2500) {
-//    const toastContainer = document.querySelector('.toast-container');
-//    if (!toastContainer) return;
-//
-//    const toastId = 'toast-' + Date.now();
-//
-//    const icons = {
-//        success: 'bi-check-circle-fill',
-//        error: 'bi-exclamation-octagon-fill',
-//        info: 'bi-info-circle-fill',
-//        warning: 'bi-exclamation-triangle-fill'
-//    };
-//
-//    const toastHTML = `
-//        <div id="${toastId}" class="toast toast-${type}" role="alert" aria-live="assertive" aria-atomic="true">
-//            <div class="toast-header bg-transparent border-0 text-white">
-//                <i class="bi ${icons[type]} me-2"></i>
-//                <strong class="me-auto text-capitalize">${type}</strong>
-//                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-//            </div>
-//            <div class="toast-body pt-0">${message}</div>
-//        </div>
-//    `;
-//
-//    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-//
-//    const toastElement = document.getElementById(toastId);
-//    const toast = new bootstrap.Toast(toastElement, {
-//        autohide: true,
-//        delay: duration
-//    });
-//
-//    toast.show();
-//
-//    toastElement.addEventListener('hidden.bs.toast', () => {
-//        toastElement.remove();
-//    });
-//}
-
 
 function showToast(message, type = 'info', duration = 2500) {
-    if (window.matchMedia('(max-width: 576px)').matches) {
-        return;
-    }
+    const isMobileLike =
+        window.matchMedia('(max-width: 576px)').matches ||
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0;
+
+    if (isMobileLike) return;
 
     const container = document.querySelector('.toast-container');
-    if (!container) return;
+    if (!container || typeof bootstrap === 'undefined') return;
 
-    const id = 'toast-' + Date.now();
+    const id = `toast-${Date.now()}`;
 
     const icons = {
         success: 'bi-check-circle-fill',
@@ -125,7 +65,7 @@ function showToast(message, type = 'info', duration = 2500) {
     const toastHTML = `
         <div id="${id}" class="toast toast-${type}" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header bg-transparent border-0 text-white">
-                <i class="bi ${icons[type]} me-2"></i>
+                <i class="bi ${icons[type] || icons.info} me-2"></i>
                 <strong class="me-auto text-capitalize">${type}</strong>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
@@ -149,33 +89,41 @@ function showToast(message, type = 'info', duration = 2500) {
 }
 
 function sendCommand(command, successMessage = null) {
-    console.log('Sending command:', command);
-
     fetch('/command', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
         },
         body: JSON.stringify({ command })
     })
-    .then(response => {
-        console.log('Response status:', response.status);
-        return response.json();
+    .then(async response => {
+        let data = {};
+        try {
+            data = await response.json();
+        } catch {
+            data = {};
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || `HTTP ${response.status}`);
+        }
+
+        return data;
     })
     .then(data => {
-        console.log('Response JSON:', data);
-
+        console.log('Response JSON:', data); /* Debug */
         if (data.status === 'success') {
             if (successMessage) {
                 showToast(successMessage, 'success');
             }
         } else {
-            showToast(data.message || 'Command failed', 'error', 4000);
+            throw new Error(data.message || 'Command failed');
         }
     })
     .catch(error => {
-        console.error('Fetch error:', error);
-        showToast(`Network error: ${error}`, 'error', 4000);
+        console.error('sendCommand error:', error);
+        showToast(String(error), 'error', 4000);
     });
 }
 
@@ -204,8 +152,8 @@ function updateKnobUI(value) {
     const angle = -135 + (percentage * 270);
 
     knobFace.style.transform = `rotate(${angle}deg)`;
-    knobValue.textContent = value;
-    volumeText.textContent = value;
+    knobValue.textContent = String(value);
+    volumeText.textContent = String(value);
 
     const ticks = knobScale.querySelectorAll('.knob-tick');
     const activeCount = Math.round(percentage * ticks.length);
@@ -215,27 +163,47 @@ function updateKnobUI(value) {
     });
 }
 
+function updatePowerUI(powerOn) {
+    if (powerButton) {
+        powerButton.classList.toggle('is-on', powerOn);
+    }
+
+    if (powerStatusText) {
+        powerStatusText.textContent = powerOn ? 'On' : 'Off';
+    }
+}
+
+function updateConnectionUI(connected, modelName = '') {
+    isConnected = connected;
+
+    if (connectionLed) {
+        connectionLed.classList.toggle('on', connected);
+    }
+
+    if (connectionLedText) {
+        connectionLedText.textContent = connected
+            ? `${modelName ? `${modelName} • ` : ''}Connected`
+            : 'Disconnected';
+    }
+}
+
 function updateMuteUI(muted) {
     isMuted = muted;
-
-    const icon = document.getElementById('muteIcon');
 
     if (knobCenterButton) {
         knobCenterButton.classList.toggle('muted', muted);
     }
 
-    if (!icon) return;
-
-    if (muted) {
-        icon.className = 'bi bi-volume-mute-fill muted';
-    } else {
-        icon.className = 'bi bi-volume-up-fill';
+    if (muteIcon) {
+        if (muted) {
+            muteIcon.className = 'bi bi-volume-mute-fill muted';
+        } else {
+            muteIcon.className = 'bi bi-volume-up-fill';
+        }
     }
 }
 
 function setVolumeControlEnabled(enabled) {
-    const volumeActions = document.querySelector('.volume-actions');
-
     if (knobWrap) {
         knobWrap.classList.toggle('knob-disabled', !enabled);
     }
@@ -244,9 +212,20 @@ function setVolumeControlEnabled(enabled) {
         knobCenterButton.disabled = !enabled;
     }
 
-    if (volumeActions) {
-        volumeActions.classList.toggle('disabled', !enabled);
-    }
+    document.querySelectorAll('.mini-input-btn').forEach(btn => {
+        btn.disabled = !enabled;
+    });
+}
+
+function updateInputUI(currentInput) {
+    document.querySelectorAll('.mini-input-btn').forEach(btn => {
+        const isActive =
+            isPowerOn &&
+            currentInput != null &&
+            btn.dataset.inputReceiver === String(currentInput);
+
+        btn.classList.toggle('active', isActive);
+    });
 }
 
 function scheduleVolumeSend(value) {
@@ -264,19 +243,17 @@ function setVolume(value, shouldSend = true) {
     if (!volumeRange) return;
 
     const currentValue = Number(volumeRange.value);
-    const newValue = Math.round(value);
+    let newValue = Math.round(value);
 
     const delta = Math.abs(newValue - currentValue);
 
-    // Ignore large jumps (>5) during interaction
-    if (shouldSend && delta > 5) {
-        console.warn('Ignored large volume jump:', currentValue, '→', newValue);
+    if (shouldSend && delta > MAX_VOLUME_STEP_PER_TOUCH) {
         return;
     }
 
     const safeValue = Math.max(minVolume, Math.min(maxVolume, newValue));
 
-    volumeRange.value = safeValue;
+    volumeRange.value = String(safeValue);
     updateKnobUI(safeValue);
 
     if (shouldSend && isPowerOn) {
@@ -289,55 +266,6 @@ function adjustVolume(delta) {
     if (!isPowerOn || !volumeRange) return;
     lastUserVolumeChangeAt = Date.now();
     setVolume(Number(volumeRange.value) + delta, true);
-}
-
-function updatePowerUI(powerOn) {
-    if (powerButton) {
-        powerButton.classList.toggle('is-on', powerOn);
-    }
-
-    if (powerStatusText) {
-        powerStatusText.textContent = powerOn ? 'On' : 'Off';
-    }
-}
-
-function togglePower() {
-    isPowerOn = !isPowerOn;
-
-    const command = isPowerOn ? 'system-power on' : 'system-power off';
-    const message = isPowerOn ? 'Receiver powered on' : 'Receiver powered off';
-
-    updatePowerUI(isPowerOn);
-    setVolumeControlEnabled(isPowerOn);
-    sendCommand(command, message);
-
-    // quick refresh shortly after sending
-    setTimeout(syncStatus, 500);
-}
-
-//function toggleMute() {
-//    if (!isPowerOn || !knobCenterButton) return;
-//
-//    const nextMuted = !isMuted;
-//    updateMuteUI(nextMuted);
-//    sendCommand('audio-muting toggle', nextMuted ? 'Muted' : 'Unmuted');
-//
-//    setTimeout(syncStatus, 400);
-//}
-
-function toggleMute() {
-    if (!isPowerOn) return;
-
-    const nextMuted = !isMuted;
-
-    updateMuteUI(nextMuted);
-    sendCommand('audio-muting toggle', nextMuted ? 'Muted' : 'Unmuted');
-
-    setTimeout(syncStatus, 400);
-}
-
-function refreshPage() {
-    location.reload();
 }
 
 function pointToVolume(clientX, clientY) {
@@ -364,11 +292,21 @@ function pointToVolume(clientX, clientY) {
 }
 
 function normalizePower(value) {
-    return value === 'on' || value === true || value === 1 || value === '1';
+    if (Array.isArray(value)) {
+        const lowered = value.map(v => String(v).toLowerCase());
+        return lowered.includes('on');
+    }
+
+    return ['on', 'true', '1'].includes(String(value).toLowerCase());
 }
 
 function normalizeMute(value) {
-    return value === 'on' || value === true || value === 1 || value === '1';
+    if (Array.isArray(value)) {
+        const lowered = value.map(v => String(v).toLowerCase());
+        return lowered.includes('on');
+    }
+
+    return ['on', 'true', '1'].includes(String(value).toLowerCase());
 }
 
 function applyStatusToUI(data) {
@@ -377,12 +315,15 @@ function applyStatusToUI(data) {
     const powerOn = normalizePower(data['system-power']);
     const muted = normalizeMute(data['audio-muting']);
     const volume = Number(data['master-volume']);
+    const currentInput = data['input-selector'];
 
     isPowerOn = powerOn;
+
     updatePowerUI(powerOn);
     setVolumeControlEnabled(powerOn);
     updateMuteUI(muted);
-    updateInputUI(data['input-selector']);
+    updateInputUI(currentInput);
+    updateDeviceInfoUI(data);
 
     const recentlyChangedVolume =
         isDragging || (Date.now() - lastUserVolumeChangeAt < USER_INTERACTION_GRACE_MS);
@@ -391,41 +332,6 @@ function applyStatusToUI(data) {
         setVolume(volume, false);
     }
 }
-
-//function syncStatus() {
-//    if (isSyncingStatus) return;
-//
-//    isSyncingStatus = true;
-//
-//    fetch('/status', {
-//        method: 'GET',
-//        headers: {
-//            'Accept': 'application/json'
-//        },
-//        cache: 'no-store'
-//    })
-//    .then(response => {
-//        if (!response.ok) {
-//            throw new Error(`HTTP ${response.status}`);
-//        }
-//        return response.json();
-//    })
-//    .then(payload => {
-//        console.log('Status payload:', payload);
-//
-//        if (payload.status === 'success' && payload.data) {
-//            applyStatusToUI(payload.data);
-//        } else {
-//            console.warn('Unexpected /status payload:', payload);
-//        }
-//    })
-//    .catch(error => {
-//        console.error('Status sync error:', error);
-//    })
-//    .finally(() => {
-//        isSyncingStatus = false;
-//    });
-//}
 
 function syncStatus() {
     if (isSyncingStatus) return;
@@ -439,28 +345,37 @@ function syncStatus() {
         },
         cache: 'no-store'
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+    .then(async response => {
+        let payload = {};
+        try {
+            payload = await response.json();
+        } catch {
+            payload = {};
         }
-        return response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+
+        console.log('Status payload:', payload); /* Debug */
+
+        return payload;
     })
     .then(payload => {
-        console.log('Status payload:', payload);
-
-        updateConnectionUI(
-            true,
-            payload.data?.model_name ?? window.APP_CONFIG?.modelName ?? ''
-        );
-
         if (payload.status === 'success' && payload.data) {
+            updateConnectionUI(
+                true,
+                payload.data.model_name ?? window.APP_CONFIG?.modelName ?? ''
+            );
+
             applyStatusToUI(payload.data);
         } else {
+            updateConnectionUI(false);
             console.warn('Unexpected /status payload:', payload);
         }
     })
     .catch(error => {
-        console.error('Status sync error:', error);
+        console.error('syncStatus error:', error);
         updateConnectionUI(false);
     })
     .finally(() => {
@@ -473,9 +388,57 @@ function startStatusPolling() {
         clearInterval(statusPollTimer);
     }
 
-    statusPollTimer = setInterval(() => {
-        syncStatus();
-    }, STATUS_POLL_INTERVAL_MS);
+    statusPollTimer = setInterval(syncStatus, STATUS_POLL_INTERVAL_MS);
+}
+
+function stopStatusPolling() {
+    if (statusPollTimer) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+    }
+}
+
+function togglePower() {
+    isPowerOn = !isPowerOn;
+
+    const command = isPowerOn ? 'system-power on' : 'system-power off';
+    const message = isPowerOn ? 'Receiver powered on' : 'Receiver powered off';
+
+    updatePowerUI(isPowerOn);
+    setVolumeControlEnabled(isPowerOn);
+
+    if (!isPowerOn) {
+        updateInputUI(null);
+    }
+
+    sendCommand(command, message);
+
+    if (isPowerOn) {
+        setTimeout(syncStatus, 300);
+        setTimeout(syncStatus, 900);
+        setTimeout(syncStatus, 1800);
+    }
+}
+
+function toggleMute() {
+    if (!isPowerOn) return;
+
+    const nextMuted = !isMuted;
+    updateMuteUI(nextMuted);
+    sendCommand('audio-muting toggle', nextMuted ? 'Muted' : 'Unmuted');
+    setTimeout(syncStatus, 400);
+}
+
+function selectInput(receiverInput, userInputName) {
+    if (!isPowerOn) return;
+
+    updateInputUI(receiverInput);
+    sendCommand(`input-selector ${receiverInput}`, `Input: ${userInputName}`);
+    setTimeout(syncStatus, 500);
+}
+
+function refreshPage() {
+    window.location.reload();
 }
 
 if (knobWrap) {
@@ -541,27 +504,14 @@ if (knobCenterButton) {
     });
 }
 
-//window.addEventListener('load', () => {
-//    createKnobTicks();
-//
-//    const initialVolume = window.APP_CONFIG?.initialVolume ?? 35;
-//    const initialPower = window.APP_CONFIG?.initialPower ?? false;
-//
-//    setVolume(initialVolume, false);
-//    isPowerOn = initialPower;
-//    updatePowerUI(initialPower);
-//    setVolumeControlEnabled(initialPower);
-//    updateMuteUI(false);
-//
-//    syncStatus();
-//    startStatusPolling();
-//
-//    if (document.body.innerHTML.includes('Connected')) {
-//        showToast('Device connected', 'success', 2200);
-//    } else {
-//        showToast('Device not available', 'warning', 3500);
-//    }
-//});
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopStatusPolling();
+    } else {
+        syncStatus();
+        startStatusPolling();
+    }
+});
 
 window.addEventListener('load', () => {
     createKnobTicks();
@@ -570,16 +520,16 @@ window.addEventListener('load', () => {
     const initialPower = window.APP_CONFIG?.initialPower ?? false;
     const initialConnected = window.APP_CONFIG?.isConnected ?? false;
     const initialModelName = window.APP_CONFIG?.modelName ?? '';
-
+    const currentInput = window.APP_CONFIG?.currentInput ?? '';
 
     setVolume(initialVolume, false);
     isPowerOn = initialPower;
 
     updatePowerUI(initialPower);
-    setVolumeControlEnabled(initialPower);
     updateMuteUI(false);
     updateConnectionUI(initialConnected, initialModelName);
-    updateInputUI(window.APP_CONFIG?.currentInput ?? '');
+    setVolumeControlEnabled(initialPower);
+    updateInputUI(currentInput);
 
     syncStatus();
     startStatusPolling();
