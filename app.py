@@ -127,11 +127,23 @@ def handle_command():
 
 @app.route("/status")
 def status():
+    data = run_receiver_command(STATUS_COMMANDS)
+
+    if not data:
+        return jsonify({
+            "status": "error",
+            "message": "Unable to reach receiver"
+        }), 503
+
     return jsonify({
         "status": "success",
-        "data": get_receiver_status(),
+        "data": {
+            "master-volume": normalize_value(data.get("master-volume", 0)),
+            "system-power": normalize_value(data.get("system-power", "off")),
+            "audio-muting": normalize_value(data.get("audio-muting", "off")),
+            "input-selector": normalize_value(data.get("input-selector", ""))
+        }
     })
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

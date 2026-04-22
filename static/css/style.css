@@ -34,9 +34,9 @@ body {
 }
 
 .power-button-sm {
-    width: 88px;
-    height: 88px;
-    font-size: 1.4rem;
+    width: 82px;
+    height: 82px;
+    font-size: 1.3rem;
 }
 
 .mini-input-grid {
@@ -108,8 +108,20 @@ body {
 }
 
 @media (max-width: 576px) {
+    .power-button-sm {
+        width: 68px;
+        height: 68px;
+        font-size: 1.05rem;
+    }
+
+    .power-cluster {
+        gap: 10px;
+    }
+
     .mini-input-grid {
         grid-template-columns: repeat(3, 1fr);
+        margin-top: 10px;
+        gap: 6px;
     }
 
     .mini-input-btn {

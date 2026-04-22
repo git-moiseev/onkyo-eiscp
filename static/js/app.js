@@ -5,10 +5,11 @@ const knobValue = document.getElementById('knobValue');
 const volumeText = document.getElementById('volumeText');
 const knobScale = document.getElementById('knobScale');
 const powerButton = document.getElementById('powerButton');
-const powerLed = document.getElementById('powerLed');
-const powerLedText = document.getElementById('powerLedText');
 const powerStatusText = document.getElementById('powerStatusText');
 const knobCenterButton = document.getElementById('knobCenterButton');
+
+const connectionLed = document.getElementById('connectionLed');
+const connectionLedText = document.getElementById('connectionLedText');
 
 let isPowerOn = false;
 let isMuted = false;
@@ -22,6 +23,18 @@ const minVolume = Number(volumeRange?.min ?? 0);
 const maxVolume = Number(volumeRange?.max ?? 80);
 const STATUS_POLL_INTERVAL_MS = 3000;
 const USER_INTERACTION_GRACE_MS = 1200;
+
+function updateConnectionUI(connected, modelName = '') {
+    if (connectionLed) {
+        connectionLed.classList.toggle('on', connected);
+    }
+
+    if (connectionLedText) {
+        connectionLedText.textContent = connected
+            ? `${modelName ? modelName + ' • ' : ''}Connected`
+            : 'Disconnected';
+    }
+}
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
@@ -283,14 +296,6 @@ function updatePowerUI(powerOn) {
         powerButton.classList.toggle('is-on', powerOn);
     }
 
-    if (powerLed) {
-        powerLed.classList.toggle('on', powerOn);
-    }
-
-    if (powerLedText) {
-        powerLedText.textContent = powerOn ? 'Powered On' : 'Standby';
-    }
-
     if (powerStatusText) {
         powerStatusText.textContent = powerOn ? 'On' : 'Off';
     }
@@ -387,6 +392,41 @@ function applyStatusToUI(data) {
     }
 }
 
+//function syncStatus() {
+//    if (isSyncingStatus) return;
+//
+//    isSyncingStatus = true;
+//
+//    fetch('/status', {
+//        method: 'GET',
+//        headers: {
+//            'Accept': 'application/json'
+//        },
+//        cache: 'no-store'
+//    })
+//    .then(response => {
+//        if (!response.ok) {
+//            throw new Error(`HTTP ${response.status}`);
+//        }
+//        return response.json();
+//    })
+//    .then(payload => {
+//        console.log('Status payload:', payload);
+//
+//        if (payload.status === 'success' && payload.data) {
+//            applyStatusToUI(payload.data);
+//        } else {
+//            console.warn('Unexpected /status payload:', payload);
+//        }
+//    })
+//    .catch(error => {
+//        console.error('Status sync error:', error);
+//    })
+//    .finally(() => {
+//        isSyncingStatus = false;
+//    });
+//}
+
 function syncStatus() {
     if (isSyncingStatus) return;
 
@@ -408,6 +448,11 @@ function syncStatus() {
     .then(payload => {
         console.log('Status payload:', payload);
 
+        updateConnectionUI(
+            true,
+            payload.data?.model_name ?? window.APP_CONFIG?.modelName ?? ''
+        );
+
         if (payload.status === 'success' && payload.data) {
             applyStatusToUI(payload.data);
         } else {
@@ -416,6 +461,7 @@ function syncStatus() {
     })
     .catch(error => {
         console.error('Status sync error:', error);
+        updateConnectionUI(false);
     })
     .finally(() => {
         isSyncingStatus = false;
@@ -495,24 +541,46 @@ if (knobCenterButton) {
     });
 }
 
+//window.addEventListener('load', () => {
+//    createKnobTicks();
+//
+//    const initialVolume = window.APP_CONFIG?.initialVolume ?? 35;
+//    const initialPower = window.APP_CONFIG?.initialPower ?? false;
+//
+//    setVolume(initialVolume, false);
+//    isPowerOn = initialPower;
+//    updatePowerUI(initialPower);
+//    setVolumeControlEnabled(initialPower);
+//    updateMuteUI(false);
+//
+//    syncStatus();
+//    startStatusPolling();
+//
+//    if (document.body.innerHTML.includes('Connected')) {
+//        showToast('Device connected', 'success', 2200);
+//    } else {
+//        showToast('Device not available', 'warning', 3500);
+//    }
+//});
+
 window.addEventListener('load', () => {
     createKnobTicks();
 
-    const initialVolume = window.APP_CONFIG?.initialVolume ?? 35;
+    const initialVolume = window.APP_CONFIG?.initialVolume ?? 20;
     const initialPower = window.APP_CONFIG?.initialPower ?? false;
+    const initialConnected = window.APP_CONFIG?.isConnected ?? false;
+    const initialModelName = window.APP_CONFIG?.modelName ?? '';
+
 
     setVolume(initialVolume, false);
     isPowerOn = initialPower;
+
     updatePowerUI(initialPower);
     setVolumeControlEnabled(initialPower);
     updateMuteUI(false);
+    updateConnectionUI(initialConnected, initialModelName);
+    updateInputUI(window.APP_CONFIG?.currentInput ?? '');
 
     syncStatus();
     startStatusPolling();
-
-    if (document.body.innerHTML.includes('Connected')) {
-        showToast('Device connected', 'success', 2200);
-    } else {
-        showToast('Device not available', 'warning', 3500);
-    }
 });

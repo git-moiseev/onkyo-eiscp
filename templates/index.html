@@ -12,24 +12,9 @@
 </head>
 <body>
     <div class="app-shell">
-<!--
-        <section class="hero">
-            <h1 class="hero-title">Onkyo Receiver Control</h1>
-            <p class="hero-subtitle">Elegant web control for power, volume, and quick actions.</p>
-        </section>
--->
         <div class="receiver-grid">
             <!-- Main controls -->
             <section class="panel-card">
-<!--
-                <div class="panel-header">
-                    <h2 class="panel-title mb-0">
-                        <i class="bi bi-sliders2 me-2"></i> Main Control Panel
-                    </h2>
-                    <span class="badge rounded-pill text-bg-dark border">Web Remote</span>
-                </div>
--->
-
                 <div class="panel-body">
                   <div hidden class="status-display">
                         <div class="status-row">
@@ -53,6 +38,12 @@
                     <div class="main-control-layout">
 
 <aside class="receiver-side">
+
+<div class="power-led">
+    <span id="connectionLed" class="power-led-dot {% if device_info %}on{% endif %}"></span>
+    <span id="connectionLedText">{% if device_info %}Connected{% else %}Disconnected{% endif %}</span>
+</div>
+
     <div class="panel-card inner-panel-card">
         <div class="panel-body power-cluster">
 
@@ -66,12 +57,6 @@
     >
         <i class="bi bi-power"></i>
     </button>
-
-    <div class="power-led">
-        <span id="powerLed" class="power-led-dot"></span>
-        <span id="powerLedText">Standby</span>
-    </div>
-
 <div class="mini-input-grid">
     {% for user_input, receiver_input in input_map.items() %}
     <button
@@ -85,36 +70,8 @@
     </button>
     {% endfor %}
 </div>
-<!--
-            <div class="power-led">
-                <span id="powerLed" class="power-led-dot"></span>
-                <span id="powerLedText">Standby</span>
-            </div>
--->
         </div>
     </div>
-<!--
-    <div class="panel-card inner-panel-card input-selector-panel">
-        <div class="panel-body py-3">
-            <div class="input-selector-title">Input Selector</div>
-
-            <div class="input-selector-list">
-                {% for user_input, receiver_input in input_map.items() %}
-                <button
-                    type="button"
-                    class="input-selector-btn"
-                    data-input-user="{{ user_input }}"
-                    data-input-receiver="{{ receiver_input }}"
-                    onclick="selectInput('{{ receiver_input }}', '{{ user_input }}')"
-                >
-                    <span class="input-selector-btn-name">{{ user_input }}</span>
-                    <span class="input-selector-btn-code">{{ receiver_input }}</span>
-                </button>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
--->
 </aside>
                         <div class="volume-section">
                             <div class="volume-label">Master Volume</div>
@@ -153,16 +110,6 @@
                                 >
                             </div>
 
-<!--
-                             <div class="volume-actions">
-                                <button class="btn btn-glass" onclick="adjustVolume(-1)">
-                                    <i class="bi bi-dash-lg me-1"></i> Down
-                                </button>
-                                <button class="btn btn-glass" onclick="adjustVolume(1)">
-                                    <i class="bi bi-plus-lg me-1"></i> Up
-                                </button>
-                            </div>
--->
 
                             <div class="muted-note">
                                 Drag the knob, use the mouse wheel, or tap the center to mute.
@@ -218,8 +165,12 @@
 window.APP_CONFIG = {
     initialVolume: {{ (device_info.get('master-volume', 20) if device_info else 20) | tojson }},
     initialPower: {{ (device_info.get('system-power') == 'on' if device_info else false) | tojson }},
-    currentInput: {{ (device_info.get('input-selector', '') if device_info else '') | tojson }}
+    currentInput: {{ (device_info.get('input-selector', '') if device_info else '') | tojson }},
+    isConnected: {{ (device_info is not none and device_info.get('identifier', '')|length > 0) | tojson }},
+    modelName: {{ (device_info.get('model_name', '') if device_info else '') | tojson }}
 };
+</script>
+
 </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
