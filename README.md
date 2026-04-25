@@ -3,8 +3,8 @@
 A lightweight Flask web application for controlling an Onkyo / Integra network receiver over eISCP.
 
 <p align="center">
-  <img src="./static/img/screen1.jpg" alt="Demo"  width="300">
-  <img src="./static/img/screen2.jpg" alt="Demo"  width="300">
+  <img src="./static/img/screen1.jpg" alt="Demo1"  >
+  <img src="./static/img/screen2.jpg" alt="Demo2"  >
 </p>
 
 ---
