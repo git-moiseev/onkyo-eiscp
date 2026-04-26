@@ -119,4 +119,7 @@ sudo systemctl start onkyo-web.service
 - Mobile devices do not display toast notifications.
 - Volume jumps larger than 5 points are ignored to prevent accidental jumps.
 
+# Based on 
 
+- https://github.com/miracle2k/onkyo-eiscp
+- Command dictionary eiscp-commands.yaml
