@@ -118,6 +118,7 @@ sudo systemctl start onkyo-web.service
 - Input LEDs turn off when receiver enters standby.
 - Mobile devices do not display toast notifications.
 - Volume jumps larger than 5 points are ignored to prevent accidental jumps.
+- For the power on command to work while the device is in standby, make sure you turn on the obtusely named Setup -> Hardware -> Network -> Network Control option. Without it, you can only connect to your receiver while it is already turned on.
 
 # Based on 
 
