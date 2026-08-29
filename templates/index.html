@@ -131,7 +131,8 @@
                     {% if device_info %}
                         <div class="mb-4">
                             <img
-                                src="{{ url_for('static', filename='img/integra-dtm-40-4-stereo-receiver.jpg') }}"
+                                src="{{ url_for('static', filename='img/' ~ device_info.get('model_name', 'default')) ~ '.jpg' }}"
+                                onerror="this.onerror=null; this.src='{{ url_for('static', filename='img/default.jpg') }}';"
                                 alt="Onkyo Receiver"
                                 class="device-image"
                             >

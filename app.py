@@ -142,7 +142,7 @@ def status():
             "system-power": normalize_value(data.get("system-power", "off")),
             "audio-muting": normalize_value(data.get("audio-muting", "off")),
             "input-selector": normalize_value(data.get("input-selector", "")),
-            "model_name": data.get('model_name', 'Unknown')
+            "model_name": data.get('model_name', 'default')
         }
     })
 
